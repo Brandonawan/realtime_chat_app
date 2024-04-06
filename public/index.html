@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        #messages {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #messages li {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        #messages li img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        #input-container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        #fileInput {
+            flex: 1 1 100%; 
+            margin-bottom: 10px;
+        }
+        #textInput {
+            flex: 2 1 calc(70% - 10px); 
+            margin-right: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #sendButton {
+            flex: 1 1 100%; 
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+
+        @media only screen and (max-width: 600px) {
+            #textInput {
+                flex: 1 1 100%; 
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h1>Brandon Chat App</h1>
+        <ul id="messages"></ul>
+        <div id="input-container">
+            <input type="file" id="fileInput" accept="image/*" />
+            <input type="text" id="textInput" autocomplete="off" placeholder="Type your message..." />
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(); // replace with ngrok tunnel or domain name
+        const messages = document.getElementById('messages');
+        const fileInput = document.getElementById('fileInput');
+        const textInput = document.getElementById('textInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // Event listener for Send button click
+        sendButton.addEventListener('click', sendMessage);
+
+        // Event listener for Enter key press in text input
+        textInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            if (fileInput.files.length > 0) {
+                // Handle image upload
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageData = e.target.result;
+                    socket.emit('chat message', { type: 'image', image: imageData });
+                    fileInput.value = '';
+                };
+                reader.readAsDataURL(file);
+            } else if (textInput.value.trim() !== '') {
+                // Handle text message
+                socket.emit('chat message', { type: 'text', message: textInput.value });
+                textInput.value = '';
+            }
+        }
+
+        socket.on('chat message', (data) => {
+            const item = document.createElement('li');
+            if (data.type === 'text') {
+                item.textContent = data.message;
+            } else if (data.type === 'image') {
+                const img = document.createElement('img');
+                img.src = data.image;
+                item.appendChild(img);
+            }
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight; // Scroll to bottom
+        });
+    </script>
+</body>
+</html>
